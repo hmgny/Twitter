@@ -10,9 +10,10 @@ import lombok.NoArgsConstructor;
 
 public class UserRequestDto {
 
-    public UserRequestDto(String userName, String password) {
+    public UserRequestDto(String userName, String password, Long userId) {
         this.userName = userName;
         this.password = password;
+        this.userId = userId;
     }
 
     @NotBlank(message = "User name cannot be blank")
@@ -28,11 +29,18 @@ public class UserRequestDto {
     )
     private String password;
 
+    @NotNull(message = "User ID cannot be null")
+    private Long userId;
+
     public String getUserName() {
         return userName;
     }
 
     public String getPassword() {
         return password;
+    }
+
+    public Long getUserId() {
+        return userId;
     }
 }

@@ -2,7 +2,9 @@ package com.workintech.twitter.controller;
 
 import com.workintech.twitter.dto.*;
 import com.workintech.twitter.entity.Tweet;
+import com.workintech.twitter.entity.User;
 import com.workintech.twitter.service.TweetService;
+import com.workintech.twitter.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -10,29 +12,35 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 
-@Slf4j
 @RestController
 @RequestMapping("/tweet")
 public class TweetController {
 
     private final TweetService tweetService;
+    private final UserService userService;
 
     @Autowired
-    public TweetController(TweetService tweetService) {
+    public TweetController(TweetService tweetService, UserService userService) {
         this.tweetService = tweetService;
-
+        this.userService = userService;
     }
 
     @PostMapping("/user")
     public ResponseEntity<TweetResponseDto> saveTweet(@Validated @RequestBody TweetRequestDto tweetRequestDto){
+        Optional<User> userOptional = userService.findById(tweetRequestDto.getUserId());
+        if (!userOptional.isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
         Tweet tweet = new Tweet();
         tweet.setTweetText(tweetRequestDto.getTweetText());
-        tweet.setUser(tweetRequestDto.getUser());
+        tweet.setUser(userOptional.get());
         tweet.setMedia(tweetRequestDto.getMedia());
+        tweet.setCreatedTime(LocalDateTime.now());
         tweet = tweetService.saveTweet(tweet);
         UserResponseDto userResponseDTO = new UserResponseDto(tweet.getUser().getUserName());
 

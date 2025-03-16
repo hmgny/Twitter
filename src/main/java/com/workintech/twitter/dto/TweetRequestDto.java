@@ -10,13 +10,17 @@ public class TweetRequestDto {
     @NotNull(message = "Tweet text cannot be null")
     private String tweetText;
 
+    @NotNull(message = "User ID cannot be null")
+    private Long userId;
+
     private User user;
     private String media;
 
     public TweetRequestDto(){}
 
-    public TweetRequestDto(String tweetText, User user, String media) {
+    public TweetRequestDto(String tweetText, Long userId, User user, String media) {
         this.tweetText = tweetText;
+        this.userId = userId;
         this.user = user;
         this.media = media;
     }
@@ -33,5 +37,7 @@ public class TweetRequestDto {
         return media;
     }
 
-
+    public Long getUserId() {
+        return userId;
+    }
 }

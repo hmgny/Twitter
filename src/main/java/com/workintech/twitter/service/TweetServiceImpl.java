@@ -24,10 +24,17 @@ public class TweetServiceImpl implements TweetService {
 
     @Override
     public Tweet saveTweet(Tweet tweet) {
-        if(tweet.getUser() == null){
-            throw new RuntimeException("Tweet'in bir sahibi olmalı!");
+        if (tweet.getUser() == null || tweet.getUser().getId() == null) {
+            throw new RuntimeException("Tweet'in bir sahibi olmalı ve kullanıcı ID'si belirtilmeli!");
         }
-     return tweetRepository.save(tweet);
+
+        Optional<User> userOptional = userRepository.findById(tweet.getUser().getId());
+        if (!userOptional.isPresent()) {
+            throw new RuntimeException("Belirtilen kullanıcı ID'si ile kullanıcı bulunamadı!");
+        }
+
+        tweet.setUser(userOptional.get());
+        return tweetRepository.save(tweet);
     }
 
     @Override

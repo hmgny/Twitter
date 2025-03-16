@@ -6,4 +6,5 @@ import java.util.Optional;
 public interface UserService {
 
     public Optional<User> findByUserName(String userName);
+    public Optional<User> findById(Long id);
 }
