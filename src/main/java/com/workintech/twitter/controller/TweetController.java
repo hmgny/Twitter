@@ -90,12 +90,24 @@ public class TweetController {
     }
 
     @PutMapping("/user/{id}")
-    public ResponseEntity<Tweet> update(@PathVariable("id") Long id, @RequestBody Tweet updateTweet){
-        Optional<Tweet> updatedTweet = tweetService.update(id, updateTweet);
-        if(updatedTweet.isPresent()){
-            return ResponseEntity.ok(updatedTweet.get());
+    public ResponseEntity<TweetResponseDto> update(@PathVariable("id") Long id, @RequestBody TweetUpdateRequestDto updateTweetDto) {
+        Optional<Tweet> optionalTweet = tweetService.getTweetDetail(id);
+        if (!optionalTweet.isPresent()) {
+            return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.notFound().build();
+
+        Tweet tweet = optionalTweet.get();
+        if (updateTweetDto.getTweetText() != null) {
+            tweet.setTweetText(updateTweetDto.getTweetText());
+        }
+        if (updateTweetDto.getMedia() != null) {
+            tweet.setMedia(updateTweetDto.getMedia());
+        }
+
+        tweetService.saveTweet(tweet);
+        UserResponseDto userResponseDTO = new UserResponseDto(tweet.getUser().getUserName());
+
+        return new ResponseEntity<>(new TweetResponseDto(tweet.getTweetText(), userResponseDTO), HttpStatus.OK);
     }
 
     @DeleteMapping("/user/{id}")
