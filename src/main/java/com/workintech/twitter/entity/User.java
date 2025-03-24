@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -13,7 +15,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "users", schema = "twitter")
-public class User {
+public class User implements UserDetails {
 
     public User(){}
 
@@ -40,12 +42,8 @@ public class User {
 
     @JsonIgnore  // Şifreyi API'de göstermemek için
     @Column(name = "password", nullable = false)
-    @Size(min = 8, max = 30, message = "Password must be between 8 and 30 characters")
     @NotBlank(message = "Password cannot be blank")
     @NotNull(message = "Password cannot be null")
-    @Pattern(regexp = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]+$",
-            message = "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character"
-    )
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -63,6 +61,42 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Retweet> retweets;
+
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Collections.singletonList(role);
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    @Override
+    public String getUsername() {
+        return userName;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
 
     public Long getId() {return id;}
 

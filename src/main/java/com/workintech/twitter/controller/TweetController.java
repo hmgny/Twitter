@@ -5,16 +5,19 @@ import com.workintech.twitter.entity.Tweet;
 import com.workintech.twitter.entity.User;
 import com.workintech.twitter.service.TweetService;
 import com.workintech.twitter.service.UserService;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @RestController
@@ -30,8 +33,17 @@ public class TweetController {
         this.userService = userService;
     }
 
+    @GetMapping
+    public ResponseEntity<List<TweetResponseDto>> getAllTweets() {
+        List<Tweet> tweets = tweetService.getAllTweets();
+        List<TweetResponseDto> tweetResponse = tweets.stream()
+                .map(tweet -> new TweetResponseDto(tweet.getTweetText(), tweet.getUser().getUsername(), tweet.getUser().getId(),tweet.getLikes().size(),tweet.getRetweets().size()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(tweetResponse);
+    }
+
     @PostMapping("/user")
-    public ResponseEntity<TweetResponseDto> saveTweet(@Validated @RequestBody TweetRequestDto tweetRequestDto){
+    public ResponseEntity<TweetResponseDto> saveTweet(@Validated @RequestBody TweetRequestDto tweetRequestDto) {
         Optional<User> userOptional = userService.findById(tweetRequestDto.getUserId());
         if (!userOptional.isPresent()) {
             return ResponseEntity.notFound().build();
@@ -42,23 +54,31 @@ public class TweetController {
         tweet.setMedia(tweetRequestDto.getMedia());
         tweet.setCreatedTime(LocalDateTime.now());
         tweet = tweetService.saveTweet(tweet);
-        UserResponseDto userResponseDTO = new UserResponseDto(tweet.getUser().getUserName());
 
-        return new ResponseEntity<>(new TweetResponseDto(tweet.getTweetText(),userResponseDTO), HttpStatus.CREATED);
+        int likesSize = (tweet.getLikes() != null) ? tweet.getLikes().size() : 0;
+        int retweetsSize = (tweet.getRetweets() != null) ? tweet.getRetweets().size() : 0; // Null kontrolü burada!
+
+        return new ResponseEntity<>(new TweetResponseDto(
+                tweet.getTweetText(),
+                tweet.getUser().getUsername(),
+                tweet.getUser().getId(),
+                likesSize,
+                retweetsSize),
+                HttpStatus.CREATED);
     }
 
-    @GetMapping("/findByUserId")
-    public ResponseEntity<List<TweetResponseDto>> findAllUserById(@Validated @RequestParam Long userId){
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<TweetResponseDto>> findAllUserById(@Validated @PathVariable("userId") Long userId){
         List<Tweet> tweets = tweetService.findAllUserById(userId);
         List<TweetResponseDto> tweetResponseDto = tweets
                 .stream()
-                .map(tweet-> new TweetResponseDto(tweet.getTweetText(),new UserResponseDto("Merve")))
-                .toList();
-                return ResponseEntity.ok(tweetResponseDto);
+                .map(tweet -> new TweetResponseDto(tweet.getTweetText(), tweet.getUser().getUsername(),tweet.getUser().getId(), tweet.getLikes().size(), tweet.getRetweets().size()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(tweetResponseDto);
     }
 
-    @GetMapping("/findById")
-    public ResponseEntity<TweetDetailResponseDto> getTweetDetail(@Validated @RequestParam Long id){
+    @GetMapping("/{id}")
+    public ResponseEntity<TweetDetailResponseDto> getTweetDetail(@Validated @PathVariable("id") Long id){
         Optional<Tweet> tweetOptional = tweetService.getTweetDetail(id);
         if(tweetOptional.isPresent()){
             Tweet tweet = tweetOptional.get();
@@ -97,6 +117,13 @@ public class TweetController {
         }
 
         Tweet tweet = optionalTweet.get();
+        Long tweetOwnerId = tweet.getUser().getId();
+        Long currentUserId = getCurrentUserId();
+
+        if (currentUserId == null || !tweetOwnerId.equals(currentUserId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        }
+
         if (updateTweetDto.getTweetText() != null) {
             tweet.setTweetText(updateTweetDto.getTweetText());
         }
@@ -107,13 +134,35 @@ public class TweetController {
         tweetService.saveTweet(tweet);
         UserResponseDto userResponseDTO = new UserResponseDto(tweet.getUser().getUserName());
 
-        return new ResponseEntity<>(new TweetResponseDto(tweet.getTweetText(), userResponseDTO), HttpStatus.OK);
+        return new ResponseEntity<>(new TweetResponseDto(tweet.getTweetText(), tweet.getUser().getUsername(),tweet.getUser().getId(), tweet.getLikes().size(), tweet.getRetweets().size()), HttpStatus.OK);
     }
 
     @DeleteMapping("/user/{id}")
-    public void delete(@PathVariable("id") Long id){
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id){
+        Optional<Tweet> optionalTweet = tweetService.getTweetDetail(id);
+        if (!optionalTweet.isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Tweet tweet = optionalTweet.get();
+        Long tweetOwnerId = tweet.getUser().getId();
+        Long currentUserId = getCurrentUserId();
+
+        if (currentUserId == null || !tweetOwnerId.equals(currentUserId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         tweetService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
-
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+            User user = (User) userDetails;
+            return user.getId();
+        }
+        return null;
+    }
 }

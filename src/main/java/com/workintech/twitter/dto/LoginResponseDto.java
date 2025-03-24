@@ -1,4 +1,4 @@
 package com.workintech.twitter.dto;
 
-public record LoginResponseDto(String userName, String message) {
+public record LoginResponseDto(Long userId, String userName, String message) {
 }

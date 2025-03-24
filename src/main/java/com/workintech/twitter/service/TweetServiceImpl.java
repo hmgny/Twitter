@@ -1,5 +1,6 @@
 package com.workintech.twitter.service;
 
+import com.workintech.twitter.dto.TweetResponseDto;
 import com.workintech.twitter.entity.Tweet;
 import com.workintech.twitter.entity.User;
 import com.workintech.twitter.repository.TweetRepository;
@@ -23,6 +24,12 @@ public class TweetServiceImpl implements TweetService {
     }
 
     @Override
+    public List<Tweet> getAllTweets() {
+        return tweetRepository.findAll();
+    }
+
+
+    @Override
     public Tweet saveTweet(Tweet tweet) {
         if (tweet.getUser() == null || tweet.getUser().getId() == null) {
             throw new RuntimeException("Tweet'in bir sahibi olmalı ve kullanıcı ID'si belirtilmeli!");
@@ -44,7 +51,7 @@ public class TweetServiceImpl implements TweetService {
            throw new RuntimeException("Kullanıcı bulunamadı");
         }
         User user=userOptional.get();
-        return tweetRepository.findByUser(user);
+        return tweetRepository.findByUserId(userId);
     }
 
     @Override

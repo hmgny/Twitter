@@ -1,6 +1,17 @@
 package com.workintech.twitter.entity;
 
-public enum Role {
+
+import org.springframework.security.core.GrantedAuthority;
+
+public enum Role implements GrantedAuthority {
     USER,
-    GUEST
+    GUEST;
+
+
+    @Override
+    public String getAuthority() {
+        return name();
+    }
+
+
 }

@@ -25,93 +25,70 @@ public class LikeServiceImpl implements LikeService {
         this.retweetRepository = retweetRepository;
     }
 
-    @Override
-    public Like likeTweet(Long userId, Long tweetId) {
-        User user= userRepository.findById(userId).orElseThrow(()->new RuntimeException("kullanıcı bulunamadı."));
-        Tweet tweet = tweetRepository.findById(tweetId).orElseThrow(()->new RuntimeException("tweet bulunamadı."));
-        Optional<Like> islike = likeRepository.findByUser_IdAndTweet_Id(userId, tweetId);
-        if(islike.isPresent()){
-            throw new RuntimeException("tweet zaten beğenilmiş.");
-        }
+    private Like updateLikeStatus(Long userId, Long itemId, String itemType, boolean liked) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("kullanıcı bulunamadı."));
         Like like = new Like();
         like.setUser(user);
-        like.setTweet(tweet);
-        like.setLikedTweet(true);
+
+        Optional<Like> existingLike = Optional.empty();
+
+        switch (itemType) {
+            case "tweet":
+                Tweet tweet = tweetRepository.findById(itemId).orElseThrow(() -> new RuntimeException("tweet bulunamadı."));
+                like.setTweet(tweet);
+                like.setLikedTweet(liked);
+                existingLike = likeRepository.findByUser_IdAndTweet_Id(userId, itemId);
+                break;
+            case "comment":
+                Comment comment = commentRepository.findById(itemId).orElseThrow(() -> new RuntimeException("comment bulunamadı."));
+                like.setComment(comment);
+                like.setLikedComment(liked);
+                existingLike = likeRepository.findByUser_IdAndComment_Id(userId, itemId);
+                break;
+            case "retweet":
+                Retweet retweet = retweetRepository.findById(itemId).orElseThrow(() -> new RuntimeException("retweet bulunamadı."));
+                like.setRetweet(retweet);
+                like.setLikedRetweet(liked);
+                existingLike = likeRepository.findByUser_IdAndRetweet_Id(userId, itemId);
+                break;
+            default:
+                throw new IllegalArgumentException("Geçersiz item tipi.");
+        }
+
+        if (existingLike.isPresent()) {
+            like.setId(existingLike.get().getId());
+        }
+
         return likeRepository.save(like);
+    }
+
+    @Override
+    public Like likeTweet(Long userId, Long tweetId) {
+        return updateLikeStatus(userId, tweetId, "tweet", true);
     }
 
     @Override
     public Like dislikeTweet(Long userId, Long tweetId) {
-        User user= userRepository.findById(userId).orElseThrow(()->new RuntimeException("kullanıcı bulunamadı."));
-        Tweet tweet = tweetRepository.findById(tweetId).orElseThrow(()->new RuntimeException("tweet bulunamadı."));
-        Optional<Like> isdislike = likeRepository.findByUser_IdAndTweet_Id(userId, tweetId);
-        if(isdislike.isEmpty()){
-            throw new RuntimeException("tweet zaten beğenilmemiş.");
-        }
-        Like dislike = new Like();
-        dislike.setUser(user);
-        dislike.setTweet(tweet);
-        dislike.setLikedTweet(false);
-        return likeRepository.save(dislike);
+        return updateLikeStatus(userId, tweetId, "tweet", false);
     }
 
     @Override
     public Like likeComment(Long userId, Long commentId) {
-        User user= userRepository.findById(userId).orElseThrow(()->new RuntimeException("kullanıcı bulunamadı."));
-        Comment comment = commentRepository.findById(commentId).orElseThrow(()->new RuntimeException("comment bulunamadı."));
-        Optional<Like> isLike = likeRepository.findByUser_IdAndComment_Id(userId, commentId);
-        if(isLike.isPresent()){
-            throw new RuntimeException("comment zaten beğenilmiş.");
-        }
-        Like like = new Like();
-        like.setUser(user);
-        like.setComment(comment);
-        like.setLikedComment(true);
-        return likeRepository.save(like);
+        return updateLikeStatus(userId, commentId, "comment", true);
     }
 
     @Override
     public Like dislikeComment(Long userId, Long commentId) {
-        User user= userRepository.findById(userId).orElseThrow(()->new RuntimeException("kullanıcı bulunamadı."));
-        Comment comment = commentRepository.findById(commentId).orElseThrow(()->new RuntimeException("comment bulunamadı."));
-        Optional<Like> isdisLike = likeRepository.findByUser_IdAndComment_Id(userId, commentId);
-        if(isdisLike.isEmpty()){
-            throw new RuntimeException("comment zaten beğenilmemiş.");
-        }
-        Like dislike = new Like();
-        dislike.setUser(user);
-        dislike.setComment(comment);
-        dislike.setLikedComment(false);
-        return likeRepository.save(dislike);
+        return updateLikeStatus(userId, commentId, "comment", false);
     }
 
     @Override
     public Like likeRetweet(Long userId, Long retweetId) {
-        User user= userRepository.findById(userId).orElseThrow(()->new RuntimeException("kullanıcı bulunamadı."));
-        Retweet retweet = retweetRepository.findById(retweetId).orElseThrow(()->new RuntimeException("retweet bulunamadı."));
-        Optional<Like> isLike = likeRepository.findByUser_IdAndRetweet_Id(userId, retweetId);
-        if(isLike.isPresent()){
-            throw new RuntimeException("retweet zaten beğenilmiş.");
-        }
-        Like like = new Like();
-        like.setUser(user);
-        like.setRetweet(retweet);
-        like.setLikedRetweet(true);
-        return likeRepository.save(like);
+        return updateLikeStatus(userId, retweetId, "retweet", true);
     }
 
     @Override
     public Like dislikeRetweet(Long userId, Long retweetId) {
-        User user= userRepository.findById(userId).orElseThrow(()->new RuntimeException("kullanıcı bulunamadı."));
-        Retweet retweet = retweetRepository.findById(retweetId).orElseThrow(()->new RuntimeException("retweet bulunamadı."));
-        Optional<Like> isLike = likeRepository.findByUser_IdAndRetweet_Id(userId, retweetId);
-        if(isLike.isEmpty()){
-            throw new RuntimeException("retweet zaten beğenilmemiş.");
-        }
-        Like like = new Like();
-        like.setUser(user);
-        like.setRetweet(retweet);
-        like.setLikedRetweet(false);
-        return likeRepository.save(like);
+        return updateLikeStatus(userId, retweetId, "retweet", false);
     }
 }
