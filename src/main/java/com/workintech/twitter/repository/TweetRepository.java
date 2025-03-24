@@ -8,5 +8,5 @@ import java.util.List;
 
 public interface TweetRepository extends JpaRepository<Tweet, Long> {
 
-    List<Tweet> findByUser(User user);
+    List<Tweet> findByUserId(Long userId);
 }
